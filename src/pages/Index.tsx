@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,16 +41,30 @@ interface UserStats {
 
 const rarityColors: Record<Rarity, string> = {
   common: 'text-gray-400',
-  rare: 'text-primary',
-  epic: 'text-secondary',
-  legendary: 'text-accent',
+  rare: 'text-blue-400',
+  epic: 'text-purple-400',
+  legendary: 'text-yellow-400',
+};
+
+const rarityBg: Record<Rarity, string> = {
+  common: 'bg-gray-500/20',
+  rare: 'bg-blue-500/20',
+  epic: 'bg-purple-500/20',
+  legendary: 'bg-yellow-500/20',
 };
 
 const rarityBorders: Record<Rarity, string> = {
-  common: 'border-gray-400/30',
-  rare: 'border-primary/30',
-  epic: 'border-secondary/30',
-  legendary: 'border-accent/30',
+  common: 'border-gray-500/50',
+  rare: 'border-blue-500/50',
+  epic: 'border-purple-500/50',
+  legendary: 'border-yellow-500/50',
+};
+
+const rarityGlow: Record<Rarity, string> = {
+  common: 'shadow-gray-500/50',
+  rare: 'shadow-blue-500/50',
+  epic: 'shadow-purple-500/50',
+  legendary: 'shadow-yellow-500/50',
 };
 
 const possibleItems: Omit<InventoryItem, 'id'>[] = [
@@ -137,10 +151,9 @@ const cases: CaseItem[] = [
 ];
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('cases');
   const [selectedCase, setSelectedCase] = useState<CaseItem | null>(null);
   const [viewingCase, setViewingCase] = useState<CaseItem | null>(null);
-  const [openCount, setOpenCount] = useState(1);
   const [isOpening, setIsOpening] = useState(false);
   const [wonItems, setWonItems] = useState<InventoryItem[]>([]);
   const [openedItems, setOpenedItems] = useState<InventoryItem[]>([]);
@@ -155,10 +168,8 @@ const Index = () => {
   const [caseOpenModal, setCaseOpenModal] = useState<CaseItem | null>(null);
   const [modalOpenCount, setModalOpenCount] = useState(1);
   const [modalFastMode, setModalFastMode] = useState(false);
-  const [inventorySort, setInventorySort] = useState<'recent' | 'value'>('recent');
+  const [inventorySort, setInventorySort] = useState<'recent' | 'value'>('value');
   
-  const rouletteRefs = useRef<(HTMLDivElement | null)[]>([]);
-
   const loadFromStorage = () => {
     const savedStats = localStorage.getItem('cs2_user_stats');
     const savedInventory = localStorage.getItem('cs2_inventory');
@@ -168,7 +179,7 @@ const Index = () => {
         totalOpened: 0,
         totalSpent: 0,
         totalWon: 0,
-        balance: 500,
+        balance: 1000,
         level: 1,
         exp: 0,
         lastFreeCase: 0,
@@ -224,7 +235,6 @@ const Index = () => {
     setIsOpening(true);
     setOpenedItems([]);
     setFastMode(fast);
-    setOpenCount(count);
 
     const newItems: InventoryItem[] = [];
     let totalValue = 0;
@@ -258,14 +268,14 @@ const Index = () => {
 
     setWonItems(newItems);
 
-    const animationDuration = fast ? 1000 : 3000;
+    const animationDuration = fast ? 1500 : 4000;
 
     setTimeout(() => {
       setOpenedItems(newItems);
       setInventory([...newItems, ...inventory]);
       
       const totalCost = caseItem.id === 0 ? 0 : caseItem.price * count;
-      const expGain = count * 5;
+      const expGain = count * 10;
       const newExp = userStats.exp + expGain;
       const levelUp = Math.floor(newExp / 100);
       
@@ -294,7 +304,7 @@ const Index = () => {
   const performUpgrade = () => {
     if (!upgradeItem || !upgradeTarget) return;
 
-    const cost = Math.round(upgradeItem.value * (1 - upgradeChance / 100));
+    const cost = Math.round((upgradeTarget.value - upgradeItem.value) * (upgradeChance / 100));
     if (userStats.balance < cost) return;
 
     setIsUpgrading(true);
@@ -320,7 +330,7 @@ const Index = () => {
       });
 
       setIsUpgrading(false);
-    }, 2000);
+    }, 2500);
   };
 
   const closeOpenedModal = () => {
@@ -332,12 +342,12 @@ const Index = () => {
   const filteredCases = categoryFilter === 'all' ? cases : cases.filter(c => c.category === categoryFilter);
 
   const getPossibleUpgrades = (item: InventoryItem) => {
-    return possibleItems.filter(i => i.value > item.value && i.value <= item.value * 3);
+    return possibleItems.filter(i => i.value > item.value && i.value <= item.value * 5);
   };
 
   const calculateUpgradeCost = () => {
-    if (!upgradeItem) return 0;
-    return Math.round(upgradeItem.value * (1 - upgradeChance / 100));
+    if (!upgradeItem || !upgradeTarget) return 0;
+    return Math.round((upgradeTarget.value - upgradeItem.value) * (upgradeChance / 100));
   };
 
   const sortedInventory = [...inventory].sort((a, b) => {
@@ -348,27 +358,21 @@ const Index = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-card">
-      <nav className="border-b border-border/50 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      <nav className="border-b border-slate-800 bg-slate-950/90 backdrop-blur-xl sticky top-0 z-50 shadow-lg shadow-blue-500/5">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="text-3xl">⚡</div>
-              <h1 className="text-2xl font-bold neon-glow text-primary">CS2 CASES</h1>
+            <div className="flex items-center gap-3">
+              <div className="text-4xl">💎</div>
+              <h1 className="text-3xl font-black bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                CS2 CASES
+              </h1>
             </div>
-            <div className="flex items-center gap-6">
-              <Button
-                variant={activeTab === 'home' ? 'default' : 'ghost'}
-                onClick={() => setActiveTab('home')}
-                className="hover:text-primary transition-colors"
-              >
-                <Icon name="Home" className="mr-2" size={18} />
-                Главная
-              </Button>
+            <div className="flex items-center gap-4">
               <Button
                 variant={activeTab === 'cases' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('cases')}
-                className="hover:text-primary transition-colors"
+                className="font-bold"
               >
                 <Icon name="Package" className="mr-2" size={18} />
                 Кейсы
@@ -376,22 +380,22 @@ const Index = () => {
               <Button
                 variant={activeTab === 'upgrade' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('upgrade')}
-                className="hover:text-primary transition-colors"
+                className="font-bold"
               >
                 <Icon name="TrendingUp" className="mr-2" size={18} />
-                Апгрейды
+                Апгрейд
               </Button>
               <Button
                 variant={activeTab === 'profile' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('profile')}
-                className="hover:text-primary transition-colors"
+                className="font-bold"
               >
                 <Icon name="User" className="mr-2" size={18} />
                 Профиль
               </Button>
-              <div className="flex items-center gap-3 ml-4 px-4 py-2 bg-card border border-primary/30 rounded-lg">
-                <Icon name="Wallet" className="text-primary" size={20} />
-                <span className="font-bold text-primary">${userStats.balance}</span>
+              <div className="flex items-center gap-3 ml-4 px-6 py-3 bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-2 border-yellow-500/50 rounded-xl shadow-lg shadow-yellow-500/20">
+                <Icon name="Coins" className="text-yellow-400" size={24} />
+                <span className="text-2xl font-black text-yellow-400">${userStats.balance}</span>
               </div>
             </div>
           </div>
@@ -399,142 +403,98 @@ const Index = () => {
       </nav>
 
       <main className="container mx-auto px-4 py-8">
-        {activeTab === 'home' && (
-          <div className="space-y-12 animate-fade-in">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/20 via-secondary/20 to-accent/20 p-12 border border-primary/30">
-              <div className="relative z-10 max-w-2xl">
-                <h2 className="text-6xl font-bold mb-4 neon-glow text-primary">
-                  ОТКРЫВАЙ КЕЙСЫ
-                </h2>
-                <p className="text-xl text-foreground/80 mb-6">
-                  Получай легендарные скины CS2 из 41 премиум кейса
-                </p>
-                <Button
-                  size="lg"
-                  onClick={() => setActiveTab('cases')}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-lg px-8 animate-glow-pulse"
-                >
-                  Открыть кейс
-                  <Icon name="ChevronRight" className="ml-2" size={20} />
-                </Button>
-              </div>
-              <div className="absolute right-12 top-1/2 -translate-y-1/2 text-9xl opacity-20">
-                💎
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="p-6 bg-card border border-primary/30">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Icon name="Package" className="text-primary" size={24} />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-primary">{userStats.totalOpened}</div>
-                    <div className="text-sm text-foreground/60">Кейсов открыто</div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 bg-card border border-secondary/30">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-secondary/20 flex items-center justify-center">
-                    <Icon name="TrendingUp" className="text-secondary" size={24} />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-secondary">${userStats.totalWon}</div>
-                    <div className="text-sm text-foreground/60">Всего выиграно</div>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 bg-card border border-accent/30">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
-                    <Icon name="Award" className="text-accent" size={24} />
-                  </div>
-                  <div>
-                    <div className="text-3xl font-bold text-accent">Lvl {userStats.level}</div>
-                    <div className="text-sm text-foreground/60">Ваш уровень</div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'cases' && (
-          <div className="space-y-8 animate-fade-in">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-2 text-primary neon-glow">Выбери свой кейс</h2>
-              <p className="text-foreground/60">41 уникальный кейс в 8 категориях</p>
-            </div>
-
+          <div className="space-y-8">
             {isOpening && selectedCase && (
-              <div className="space-y-4">
-                {wonItems.map((wonItem, idx) => (
-                  <Card key={idx} className="p-6 bg-card border-2 border-primary/50 relative overflow-hidden">
-                    <div className="space-y-4">
-                      <div className="text-center">
-                        <h3 className="text-xl font-bold text-primary">Кейс #{idx + 1}</h3>
-                      </div>
-                      <div className="relative h-32 overflow-hidden rounded-lg border-2 border-primary/30 bg-background">
-                        <div 
-                          ref={el => rouletteRefs.current[idx] = el}
-                          className="absolute flex gap-2 p-2 roulette-animation"
-                          style={{
-                            animation: `${fastMode ? 'roulette-fast' : 'roulette'} ${fastMode ? '1s' : '3s'} cubic-bezier(0.17, 0.67, 0.12, 0.99) forwards`,
-                          }}
-                        >
-                          {Array.from({ length: 50 }).map((_, i) => {
-                            let item;
-                            if (i === 45) {
-                              item = wonItem;
-                            } else {
-                              const randomDrop = selectedCase.drops[Math.floor(Math.random() * selectedCase.drops.length)];
-                              item = { ...randomDrop, id: Date.now() + i };
-                            }
-                            return (
-                              <div
-                                key={i}
-                                className={`flex-shrink-0 w-28 h-28 flex flex-col items-center justify-center bg-card border-2 ${rarityBorders[item.rarity]} rounded-lg p-2`}
-                              >
-                                <img src={item.image} alt={item.name} className="w-16 h-16 object-contain mb-1" />
-                                <div className={`text-[10px] font-bold text-center ${rarityColors[item.rarity]}`}>
-                                  {item.name}
-                                </div>
-                              </div>
-                            );
-                          })}
+              <div className="space-y-6">
+                {wonItems.map((wonItem, idx) => {
+                  const ITEM_WIDTH = 140;
+                  const ITEM_GAP = 12;
+                  const WIN_POSITION = 15;
+                  const TOTAL_ITEMS = 80;
+                  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+                  const offset = -(WIN_POSITION * (ITEM_WIDTH + ITEM_GAP)) + (viewportWidth / 2 - ITEM_WIDTH / 2);
+
+                  return (
+                    <Card key={idx} className="p-8 bg-slate-900/50 border-2 border-blue-500/30 backdrop-blur-xl relative overflow-hidden shadow-2xl shadow-blue-500/10">
+                      <div className="space-y-6">
+                        <div className="text-center">
+                          <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                            Открытие кейса #{idx + 1}
+                          </h3>
                         </div>
-                        <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-accent transform -translate-x-1/2 z-10 shadow-lg shadow-accent/50"></div>
+                        <div className="relative h-44 overflow-hidden rounded-2xl border-2 border-blue-500/50 bg-slate-950/80 shadow-inner">
+                          <div 
+                            className="absolute flex gap-3 p-4"
+                            style={{
+                              animation: `roulette-slide-${idx} ${fastMode ? '1.5s' : '4s'} cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+                              transform: `translateX(0px)`,
+                            }}
+                          >
+                            {Array.from({ length: TOTAL_ITEMS }).map((_, i) => {
+                              let item;
+                              if (i === WIN_POSITION) {
+                                item = wonItem;
+                              } else {
+                                const randomDrop = selectedCase.drops[Math.floor(Math.random() * selectedCase.drops.length)];
+                                item = { ...randomDrop, id: Date.now() + i + idx * 1000 };
+                              }
+                              return (
+                                <div
+                                  key={i}
+                                  className={`flex-shrink-0 w-[140px] h-36 flex flex-col items-center justify-center ${rarityBg[item.rarity]} border-2 ${rarityBorders[item.rarity]} rounded-xl p-3 backdrop-blur-sm shadow-lg ${rarityGlow[item.rarity]}`}
+                                >
+                                  <img src={item.image} alt={item.name} className="w-20 h-20 object-contain mb-2" />
+                                  <div className={`text-xs font-bold text-center ${rarityColors[item.rarity]} line-clamp-2`}>
+                                    {item.name}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-400 transform -translate-x-1/2 z-10 shadow-2xl shadow-yellow-500/80"></div>
+                          <div className="absolute left-1/2 top-0 w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-yellow-400 transform -translate-x-1/2 z-10 drop-shadow-lg"></div>
+                          <div className="absolute left-1/2 bottom-0 w-0 h-0 border-l-[12px] border-r-[12px] border-b-[20px] border-l-transparent border-r-transparent border-b-yellow-400 transform -translate-x-1/2 z-10 drop-shadow-lg"></div>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                ))}
+                      <style>{`
+                        @keyframes roulette-slide-${idx} {
+                          0% { transform: translateX(0); }
+                          100% { transform: translateX(${offset}px); }
+                        }
+                      `}</style>
+                    </Card>
+                  );
+                })}
               </div>
             )}
 
             {openedItems.length > 0 && !isOpening && (
-              <Card className="p-12 bg-card border-2 border-primary/50 mb-8 animate-scale-in">
-                <div className="text-center space-y-6">
-                  <h3 className="text-3xl font-bold text-primary">Поздравляем! Вы получили:</h3>
+              <Card className="p-16 bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-2 border-yellow-500/50 mb-8 backdrop-blur-xl shadow-2xl shadow-yellow-500/20">
+                <div className="text-center space-y-8">
+                  <div>
+                    <div className="text-7xl mb-4 animate-bounce">🎉</div>
+                    <h3 className="text-4xl font-black mb-2 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
+                      Поздравляем!
+                    </h3>
+                    <p className="text-xl text-slate-400">Вы получили следующие предметы:</p>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
                     {openedItems.map((item) => (
-                      <Card key={item.id} className={`p-6 bg-background border-2 ${rarityBorders[item.rarity]}`}>
-                        <Badge className={`mb-3 ${rarityColors[item.rarity]}`}>
+                      <Card key={item.id} className={`p-6 ${rarityBg[item.rarity]} border-2 ${rarityBorders[item.rarity]} backdrop-blur-sm hover:scale-105 transition-transform shadow-xl ${rarityGlow[item.rarity]}`}>
+                        <Badge className={`mb-4 ${rarityColors[item.rarity]} font-bold text-xs`}>
                           {item.rarity.toUpperCase()}
                         </Badge>
-                        <img src={item.image} alt={item.name} className="w-32 h-32 object-contain mx-auto mb-3" />
-                        <h4 className={`font-bold mb-2 text-sm ${rarityColors[item.rarity]}`}>{item.name}</h4>
-                        <div className="text-2xl font-bold text-primary">${item.value}</div>
+                        <img src={item.image} alt={item.name} className="w-32 h-32 object-contain mx-auto mb-4" />
+                        <h4 className={`font-bold mb-3 ${rarityColors[item.rarity]}`}>{item.name}</h4>
+                        <div className="text-3xl font-black text-yellow-400">${item.value}</div>
                       </Card>
                     ))}
                   </div>
                   <Button
                     size="lg"
                     onClick={closeOpenedModal}
-                    className="bg-primary hover:bg-primary/90"
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-bold text-lg px-12 py-6 shadow-xl shadow-blue-500/30"
                   >
                     Продолжить
                   </Button>
@@ -542,67 +502,61 @@ const Index = () => {
               </Card>
             )}
 
-            <div className="flex gap-2 mb-4 flex-wrap">
+            <div className="flex gap-2 flex-wrap">
               <Button
                 variant={categoryFilter === 'all' ? 'default' : 'outline'}
                 onClick={() => setCategoryFilter('all')}
-                size="sm"
+                className="font-bold"
               >
-                Все
+                Все кейсы
               </Button>
               {(['free', 'starter', 'bronze', 'silver', 'gold', 'premium', 'elite', 'legendary'] as Category[]).map((cat) => (
                 <Button
                   key={cat}
                   variant={categoryFilter === cat ? 'default' : 'outline'}
                   onClick={() => setCategoryFilter(cat)}
-                  size="sm"
+                  className="font-bold"
                 >
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
                 </Button>
               ))}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
               {filteredCases.map((caseItem) => (
                 <Card
                   key={caseItem.id}
-                  className={`p-4 bg-card border-2 ${rarityBorders[caseItem.rarity]} hover:scale-105 transition-all ${caseItem.id === 0 ? 'ring-2 ring-accent' : ''}`}
+                  className={`p-6 ${rarityBg[caseItem.rarity]} border-2 ${rarityBorders[caseItem.rarity]} hover:scale-105 hover:shadow-2xl transition-all backdrop-blur-sm cursor-pointer ${rarityGlow[caseItem.rarity]}`}
+                  onClick={() => !isOpening && (caseItem.id === 0 && freeTimer > 0 ? null : setCaseOpenModal(caseItem))}
                 >
-                  <div className="text-center space-y-2">
-                    <div className="text-4xl mb-2">{caseItem.image}</div>
-                    <h4 className={`text-sm font-bold ${rarityColors[caseItem.rarity]}`}>
+                  <div className="text-center space-y-3">
+                    <div className="text-5xl mb-3">{caseItem.image}</div>
+                    <h4 className={`text-base font-black ${rarityColors[caseItem.rarity]}`}>
                       {caseItem.name}
                     </h4>
                     {caseItem.id === 0 ? (
-                      <div className="text-xs font-bold text-accent">
-                        {freeTimer > 0 ? formatTime(freeTimer) : 'ГОТОВ!'}
+                      <div className="text-sm font-bold text-green-400">
+                        {freeTimer > 0 ? formatTime(freeTimer) : '✅ ГОТОВ!'}
                       </div>
                     ) : (
-                      <div className="text-lg font-bold text-primary">${caseItem.price}</div>
+                      <div className="text-2xl font-black text-yellow-400">${caseItem.price}</div>
                     )}
-                    <div className="flex gap-1">
-                      <Button
-                        className="flex-1 bg-primary hover:bg-primary/90 font-bold text-xs py-2"
-                        disabled={isOpening || (caseItem.id === 0 ? freeTimer > 0 : userStats.balance < caseItem.price)}
-                        onClick={() => setCaseOpenModal(caseItem)}
-                      >
-                        {caseItem.id === 0 ? (
-                          freeTimer > 0 ? <Icon name="Clock" size={14} /> : 'Открыть'
-                        ) : userStats.balance < caseItem.price ? (
-                          'Мало $'
-                        ) : (
-                          'Открыть'
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="px-2"
-                        onClick={() => setViewingCase(caseItem)}
-                      >
-                        <Icon name="Eye" size={14} />
-                      </Button>
-                    </div>
+                    <Button
+                      className={`w-full font-bold ${caseItem.id === 0 ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'} shadow-lg`}
+                      disabled={isOpening || (caseItem.id === 0 ? freeTimer > 0 : false)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!(caseItem.id === 0 && freeTimer > 0)) {
+                          setCaseOpenModal(caseItem);
+                        }
+                      }}
+                    >
+                      {caseItem.id === 0 && freeTimer > 0 ? (
+                        <Icon name="Clock" size={16} />
+                      ) : (
+                        'Открыть'
+                      )}
+                    </Button>
                   </div>
                 </Card>
               ))}
@@ -611,64 +565,75 @@ const Index = () => {
         )}
 
         {activeTab === 'upgrade' && (
-          <div className="space-y-8 animate-fade-in">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold mb-2 text-secondary neon-glow">Апгрейд предметов</h2>
-              <p className="text-foreground/60">Улучшай свои скины с настраиваемым шансом успеха</p>
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-5xl font-black mb-3 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Улучшение предметов
+              </h2>
+              <p className="text-xl text-slate-400">Рискни и получи предмет в 5 раз дороже!</p>
             </div>
 
             {upgradeResult && (
-              <Card className="p-8 bg-card border-2 border-primary/50 mb-8 animate-scale-in">
-                <div className="text-center space-y-4">
+              <Card className="p-12 bg-gradient-to-br from-slate-900/90 to-slate-800/90 border-2 border-purple-500/50 backdrop-blur-xl shadow-2xl shadow-purple-500/20">
+                <div className="text-center space-y-6">
                   {upgradeResult.success ? (
                     <>
-                      <div className="text-6xl">🎉</div>
-                      <h3 className="text-2xl font-bold text-success">Успешный апгрейд!</h3>
-                      <Card className={`p-6 bg-background border-2 ${rarityBorders[upgradeResult.item!.rarity]} inline-block`}>
-                        <img src={upgradeResult.item!.image} alt={upgradeResult.item!.name} className="w-32 h-32 object-contain mx-auto mb-2" />
-                        <h4 className={`font-bold ${rarityColors[upgradeResult.item!.rarity]}`}>{upgradeResult.item!.name}</h4>
-                        <div className="text-xl font-bold text-primary">${upgradeResult.item!.value}</div>
+                      <div className="text-8xl animate-bounce">🎊</div>
+                      <h3 className="text-4xl font-black bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
+                        УСПЕХ!
+                      </h3>
+                      <Card className={`p-8 ${rarityBg[upgradeResult.item!.rarity]} border-2 ${rarityBorders[upgradeResult.item!.rarity]} inline-block backdrop-blur-sm shadow-2xl ${rarityGlow[upgradeResult.item!.rarity]}`}>
+                        <img src={upgradeResult.item!.image} alt={upgradeResult.item!.name} className="w-40 h-40 object-contain mx-auto mb-4" />
+                        <h4 className={`text-xl font-bold ${rarityColors[upgradeResult.item!.rarity]} mb-2`}>{upgradeResult.item!.name}</h4>
+                        <div className="text-4xl font-black text-yellow-400">${upgradeResult.item!.value}</div>
                       </Card>
                     </>
                   ) : (
                     <>
-                      <div className="text-6xl">💔</div>
-                      <h3 className="text-2xl font-bold text-destructive">Неудача</h3>
-                      <p className="text-foreground/60">Предмет потерян. Попробуйте еще раз!</p>
+                      <div className="text-8xl">😢</div>
+                      <h3 className="text-4xl font-black text-red-400">Неудача!</h3>
+                      <p className="text-xl text-slate-400">Предмет потерян. Попробуй снова!</p>
                     </>
                   )}
-                  <Button onClick={() => {
-                    setUpgradeResult(null);
-                    setUpgradeItem(null);
-                    setUpgradeTarget(null);
-                  }}>
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-lg px-12 py-6"
+                    onClick={() => {
+                      setUpgradeResult(null);
+                      setUpgradeItem(null);
+                      setUpgradeTarget(null);
+                    }}
+                  >
                     Продолжить
                   </Button>
                 </div>
               </Card>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="p-6 bg-card border border-primary/30">
-                <h3 className="text-xl font-bold mb-4 text-primary">1. Выбери предмет</h3>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="p-8 bg-slate-900/50 border-2 border-purple-500/30 backdrop-blur-xl">
+                <h3 className="text-2xl font-bold mb-6 text-purple-400">Выбери предмет для улучшения</h3>
+                <div className="space-y-4 max-h-[500px] overflow-y-auto">
                   {inventory.length === 0 ? (
-                    <p className="text-foreground/60 text-center py-8">Инвентарь пуст</p>
+                    <div className="text-center py-12">
+                      <div className="text-6xl mb-4 opacity-50">📦</div>
+                      <p className="text-slate-400">Инвентарь пуст</p>
+                    </div>
                   ) : (
                     inventory.map((item) => (
                       <Card
                         key={item.id}
-                        className={`p-3 bg-background border-2 ${upgradeItem?.id === item.id ? 'border-primary' : rarityBorders[item.rarity]} hover:scale-102 transition-transform cursor-pointer`}
+                        className={`p-4 ${upgradeItem?.id === item.id ? 'bg-purple-500/20 border-purple-500' : `${rarityBg[item.rarity]} ${rarityBorders[item.rarity]}`} border-2 hover:scale-102 transition-all cursor-pointer backdrop-blur-sm`}
                         onClick={() => {
                           setUpgradeItem(item);
                           setUpgradeTarget(null);
                         }}
                       >
-                        <div className="flex items-center gap-3">
-                          <img src={item.image} alt={item.name} className="w-12 h-12 object-contain" />
+                        <div className="flex items-center gap-4">
+                          <img src={item.image} alt={item.name} className="w-16 h-16 object-contain" />
                           <div className="flex-1">
                             <h4 className={`text-sm font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
-                            <p className="text-xs text-foreground/60">${item.value}</p>
+                            <p className="text-lg font-bold text-yellow-400">${item.value}</p>
                           </div>
                         </div>
                       </Card>
@@ -677,132 +642,114 @@ const Index = () => {
                 </div>
               </Card>
 
-              <Card className="p-6 bg-card border border-secondary/30">
-                <h3 className="text-xl font-bold mb-4 text-secondary">2. Целевой предмет</h3>
+              <Card className="p-8 bg-slate-900/50 border-2 border-pink-500/30 backdrop-blur-xl">
+                <h3 className="text-2xl font-bold mb-6 text-pink-400">Целевой предмет</h3>
                 {!upgradeItem ? (
-                  <p className="text-foreground/60 text-center py-8">Сначала выберите предмет для апгрейда</p>
-                ) : (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {getPossibleUpgrades(upgradeItem).map((item, idx) => (
-                      <Card
-                        key={idx}
-                        className={`p-3 bg-background border-2 ${upgradeTarget?.name === item.name ? 'border-secondary' : rarityBorders[item.rarity]} hover:scale-102 transition-transform cursor-pointer`}
-                        onClick={() => setUpgradeTarget({ ...item, id: Date.now() })}
-                      >
-                        <div className="flex items-center gap-3">
-                          <img src={item.image} alt={item.name} className="w-12 h-12 object-contain" />
-                          <div className="flex-1">
-                            <h4 className={`text-sm font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
-                            <p className="text-xs text-foreground/60">${item.value}</p>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
+                  <div className="text-center py-12">
+                    <p className="text-slate-400 text-lg">← Сначала выбери предмет слева</p>
                   </div>
-                )}
-              </Card>
-
-              <Card className="p-6 bg-card border border-accent/30">
-                <h3 className="text-xl font-bold mb-4 text-accent">3. Настройки</h3>
-                {!upgradeItem || !upgradeTarget ? (
-                  <p className="text-foreground/60 text-center py-8">Выберите предметы для апгрейда</p>
                 ) : (
                   <div className="space-y-6">
-                    <div>
-                      <label className="text-sm text-foreground/80 mb-2 block">
-                        Шанс успеха: {upgradeChance}%
-                      </label>
-                      <Slider
-                        value={[upgradeChance]}
-                        onValueChange={(v) => setUpgradeChance(v[0])}
-                        min={5}
-                        max={95}
-                        step={5}
-                        className="mb-2"
-                      />
-                      <div className="flex justify-between text-xs text-foreground/60">
-                        <span>5%</span>
-                        <span>95%</span>
-                      </div>
+                    <div className="space-y-4 max-h-[350px] overflow-y-auto">
+                      {getPossibleUpgrades(upgradeItem).map((item, idx) => (
+                        <Card
+                          key={idx}
+                          className={`p-4 ${upgradeTarget?.name === item.name ? 'bg-pink-500/20 border-pink-500' : `${rarityBg[item.rarity]} ${rarityBorders[item.rarity]}`} border-2 hover:scale-102 transition-all cursor-pointer backdrop-blur-sm`}
+                          onClick={() => setUpgradeTarget({ ...item, id: Date.now() })}
+                        >
+                          <div className="flex items-center gap-4">
+                            <img src={item.image} alt={item.name} className="w-16 h-16 object-contain" />
+                            <div className="flex-1">
+                              <h4 className={`text-sm font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
+                              <p className="text-lg font-bold text-yellow-400">${item.value}</p>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
                     </div>
 
-                    <div className="space-y-2 p-4 bg-background rounded-lg">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-foreground/60">Стоимость:</span>
-                        <span className="font-bold text-primary">${calculateUpgradeCost()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-foreground/60">При успехе:</span>
-                        <span className="font-bold text-success">+${upgradeTarget.value - upgradeItem.value}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-foreground/60">При провале:</span>
-                        <span className="font-bold text-destructive">-${upgradeItem.value}</span>
-                      </div>
-                    </div>
+                    {upgradeTarget && (
+                      <div className="space-y-6 p-6 bg-slate-950/50 rounded-xl border border-pink-500/30">
+                        <div>
+                          <label className="text-sm font-bold mb-3 block text-pink-400">
+                            Шанс успеха: {upgradeChance}%
+                          </label>
+                          <Slider
+                            value={[upgradeChance]}
+                            onValueChange={(v) => setUpgradeChance(v[0])}
+                            min={10}
+                            max={90}
+                            step={5}
+                            className="mb-3"
+                          />
+                        </div>
 
-                    <Button
-                      className="w-full bg-secondary hover:bg-secondary/90 font-bold"
-                      onClick={performUpgrade}
-                      disabled={isUpgrading || userStats.balance < calculateUpgradeCost()}
-                    >
-                      {isUpgrading ? (
-                        <>
-                          <Icon name="Loader2" className="mr-2 animate-spin" size={18} />
-                          Апгрейд...
-                        </>
-                      ) : userStats.balance < calculateUpgradeCost() ? (
-                        'Недостаточно средств'
-                      ) : (
-                        `Улучшить за $${calculateUpgradeCost()}`
-                      )}
-                    </Button>
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-lg">
+                            <span className="text-slate-400">Стоимость:</span>
+                            <span className="font-bold text-yellow-400">${calculateUpgradeCost()}</span>
+                          </div>
+                          <div className="flex justify-between text-lg">
+                            <span className="text-slate-400">При успехе:</span>
+                            <span className="font-bold text-green-400">+${upgradeTarget.value - upgradeItem.value}</span>
+                          </div>
+                          <div className="flex justify-between text-lg">
+                            <span className="text-slate-400">При провале:</span>
+                            <span className="font-bold text-red-400">-${upgradeItem.value}</span>
+                          </div>
+                        </div>
+
+                        <Button
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 font-bold text-lg py-6 shadow-xl"
+                          onClick={performUpgrade}
+                          disabled={isUpgrading || userStats.balance < calculateUpgradeCost()}
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <Icon name="Loader2" className="mr-2 animate-spin" size={20} />
+                              Улучшение...
+                            </>
+                          ) : userStats.balance < calculateUpgradeCost() ? (
+                            'Недостаточно средств'
+                          ) : (
+                            `Улучшить за $${calculateUpgradeCost()}`
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>
             </div>
-
-            <Card className="p-6 bg-gradient-to-r from-secondary/10 to-accent/10 border border-secondary/30">
-              <div className="flex items-start gap-4">
-                <Icon name="Info" className="text-secondary mt-1" size={24} />
-                <div>
-                  <h4 className="font-bold text-secondary mb-2">Как работает апгрейд?</h4>
-                  <ul className="text-sm text-foreground/70 space-y-1 list-disc list-inside">
-                    <li>Выберите предмет из инвентаря и целевой предмет для апгрейда</li>
-                    <li>Настройте шанс успеха (чем выше шанс, тем выше стоимость)</li>
-                    <li>При успехе получите целевой предмет, при неудаче потеряете исходный</li>
-                    <li>Целевой предмет может стоить до 3x от исходного</li>
-                  </ul>
-                </div>
-              </div>
-            </Card>
           </div>
         )}
 
         {activeTab === 'profile' && (
-          <div className="space-y-8 animate-fade-in">
-            <Card className="p-8 bg-card border border-primary/30">
-              <div className="flex items-start gap-6 mb-8">
-                <Avatar className="w-24 h-24 border-2 border-primary">
+          <div className="space-y-8">
+            <Card className="p-10 bg-slate-900/50 border-2 border-blue-500/30 backdrop-blur-xl">
+              <div className="flex items-start gap-8 mb-10">
+                <Avatar className="w-32 h-32 border-4 border-blue-500 shadow-xl shadow-blue-500/30">
                   <AvatarImage src="" />
-                  <AvatarFallback className="text-3xl bg-primary/20">🎮</AvatarFallback>
+                  <AvatarFallback className="text-5xl bg-gradient-to-br from-blue-500 to-purple-500">🎮</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h2 className="text-3xl font-bold mb-2 text-primary">Player #{Math.floor(Math.random() * 99999)}</h2>
-                  <div className="flex items-center gap-4 mb-4">
-                    <Badge className="text-lg px-3 py-1 bg-primary/20 text-primary">
+                  <h2 className="text-4xl font-black mb-3 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    Player #{Math.floor(Math.random() * 99999)}
+                  </h2>
+                  <div className="flex items-center gap-6 mb-6">
+                    <Badge className="text-xl px-4 py-2 bg-blue-500/20 text-blue-400 font-bold border-2 border-blue-500/50">
                       Level {userStats.level}
                     </Badge>
-                    <span className="text-foreground/60">Баланс: ${userStats.balance}</span>
+                    <span className="text-lg text-slate-400">Баланс: <span className="font-bold text-yellow-400">${userStats.balance}</span></span>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-foreground/60">Опыт до следующего уровня</span>
-                      <span className="font-bold text-primary">{userStats.exp}/100 XP</span>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Опыт до следующего уровня</span>
+                      <span className="font-bold text-blue-400">{userStats.exp}/100 XP</span>
                     </div>
-                    <div className="w-full bg-border rounded-full h-3">
+                    <div className="w-full bg-slate-800 rounded-full h-4 overflow-hidden">
                       <div
-                        className="bg-primary h-3 rounded-full transition-all"
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-4 rounded-full transition-all shadow-lg shadow-blue-500/50"
                         style={{ width: `${userStats.exp}%` }}
                       ></div>
                     </div>
@@ -811,63 +758,63 @@ const Index = () => {
               </div>
 
               <Tabs defaultValue="inventory" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="inventory">Инвентарь ({inventory.length})</TabsTrigger>
-                  <TabsTrigger value="stats">Статистика</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/50">
+                  <TabsTrigger value="inventory" className="font-bold text-lg">Инвентарь ({inventory.length})</TabsTrigger>
+                  <TabsTrigger value="stats" className="font-bold text-lg">Статистика</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="inventory" className="space-y-4">
-                  <div className="flex items-center justify-between mb-4">
+                <TabsContent value="inventory" className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-xl font-bold text-primary">Предметы: {inventory.length}</h3>
-                      <p className="text-sm text-foreground/60">
-                        Общая стоимость: ${inventory.reduce((sum, item) => sum + item.value, 0)}
+                      <h3 className="text-2xl font-bold text-blue-400">Предметы: {inventory.length}</h3>
+                      <p className="text-lg text-slate-400">
+                        Общая стоимость: <span className="font-bold text-yellow-400">${inventory.reduce((sum, item) => sum + item.value, 0)}</span>
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        variant={inventorySort === 'recent' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setInventorySort('recent')}
-                      >
-                        Последние
-                      </Button>
-                      <Button
                         variant={inventorySort === 'value' ? 'default' : 'outline'}
-                        size="sm"
                         onClick={() => setInventorySort('value')}
+                        className="font-bold"
                       >
                         По цене
+                      </Button>
+                      <Button
+                        variant={inventorySort === 'recent' ? 'default' : 'outline'}
+                        onClick={() => setInventorySort('recent')}
+                        className="font-bold"
+                      >
+                        Последние
                       </Button>
                     </div>
                   </div>
 
                   {inventory.length === 0 ? (
-                    <Card className="p-12 bg-background border border-border/50 text-center">
-                      <div className="text-6xl mb-4 opacity-50">📦</div>
-                      <p className="text-foreground/60">Ваш инвентарь пуст. Откройте кейсы!</p>
+                    <Card className="p-16 bg-slate-950/50 border-2 border-slate-800 text-center">
+                      <div className="text-8xl mb-6 opacity-30">📦</div>
+                      <p className="text-xl text-slate-400">Инвентарь пуст. Открой кейсы!</p>
                     </Card>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {sortedInventory.map((item) => (
                         <Card
                           key={item.id}
-                          className={`p-4 bg-background border-2 ${rarityBorders[item.rarity]} hover:scale-105 transition-transform`}
+                          className={`p-4 ${rarityBg[item.rarity]} border-2 ${rarityBorders[item.rarity]} hover:scale-105 transition-transform backdrop-blur-sm shadow-xl ${rarityGlow[item.rarity]}`}
                         >
-                          <div className="text-center space-y-2">
-                            <img src={item.image} alt={item.name} className="w-20 h-20 object-contain mx-auto mb-2" />
-                            <h4 className={`text-xs font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
-                            <Badge variant="outline" className={`text-xs ${rarityColors[item.rarity]}`}>
-                              {item.rarity.toUpperCase()}
+                          <div className="text-center space-y-3">
+                            <img src={item.image} alt={item.name} className="w-24 h-24 object-contain mx-auto" />
+                            <h4 className={`text-xs font-bold ${rarityColors[item.rarity]} line-clamp-2`}>{item.name}</h4>
+                            <Badge variant="outline" className={`text-xs ${rarityColors[item.rarity]} font-bold`}>
+                              {item.rarity}
                             </Badge>
-                            <div className="text-sm font-bold text-primary">${item.value}</div>
+                            <div className="text-lg font-black text-yellow-400">${item.value}</div>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full text-xs"
+                              className="w-full font-bold"
                               onClick={() => sellItem(item)}
                             >
-                              <Icon name="DollarSign" className="mr-1" size={12} />
+                              <Icon name="DollarSign" className="mr-1" size={14} />
                               Продать
                             </Button>
                           </div>
@@ -878,37 +825,37 @@ const Index = () => {
                 </TabsContent>
 
                 <TabsContent value="stats" className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card className="p-6 bg-background border border-primary/20">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Icon name="Package" className="text-primary" size={20} />
-                        <span className="text-sm text-foreground/60">Открыто кейсов</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card className="p-8 bg-blue-500/10 border-2 border-blue-500/30 backdrop-blur-sm">
+                      <div className="flex items-center gap-4 mb-3">
+                        <Icon name="Package" className="text-blue-400" size={28} />
+                        <span className="text-sm text-slate-400 font-bold">Открыто кейсов</span>
                       </div>
-                      <div className="text-3xl font-bold text-primary">{userStats.totalOpened}</div>
+                      <div className="text-4xl font-black text-blue-400">{userStats.totalOpened}</div>
                     </Card>
 
-                    <Card className="p-6 bg-background border border-secondary/20">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Icon name="DollarSign" className="text-secondary" size={20} />
-                        <span className="text-sm text-foreground/60">Потрачено</span>
+                    <Card className="p-8 bg-red-500/10 border-2 border-red-500/30 backdrop-blur-sm">
+                      <div className="flex items-center gap-4 mb-3">
+                        <Icon name="DollarSign" className="text-red-400" size={28} />
+                        <span className="text-sm text-slate-400 font-bold">Потрачено</span>
                       </div>
-                      <div className="text-3xl font-bold text-secondary">${userStats.totalSpent}</div>
+                      <div className="text-4xl font-black text-red-400">${userStats.totalSpent}</div>
                     </Card>
 
-                    <Card className="p-6 bg-background border border-accent/20">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Icon name="TrendingUp" className="text-accent" size={20} />
-                        <span className="text-sm text-foreground/60">Выиграно</span>
+                    <Card className="p-8 bg-green-500/10 border-2 border-green-500/30 backdrop-blur-sm">
+                      <div className="flex items-center gap-4 mb-3">
+                        <Icon name="TrendingUp" className="text-green-400" size={28} />
+                        <span className="text-sm text-slate-400 font-bold">Выиграно</span>
                       </div>
-                      <div className="text-3xl font-bold text-accent">${userStats.totalWon}</div>
+                      <div className="text-4xl font-black text-green-400">${userStats.totalWon}</div>
                     </Card>
 
-                    <Card className="p-6 bg-background border border-success/20">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Icon name="Percent" className="text-success" size={20} />
-                        <span className="text-sm text-foreground/60">Прибыль</span>
+                    <Card className="p-8 bg-yellow-500/10 border-2 border-yellow-500/30 backdrop-blur-sm">
+                      <div className="flex items-center gap-4 mb-3">
+                        <Icon name="Percent" className="text-yellow-400" size={28} />
+                        <span className="text-sm text-slate-400 font-bold">Прибыль</span>
                       </div>
-                      <div className="text-3xl font-bold text-success">
+                      <div className="text-4xl font-black text-yellow-400">
                         {userStats.totalSpent > 0 ? 
                           `${((userStats.totalWon - userStats.totalSpent) / userStats.totalSpent * 100).toFixed(1)}%` 
                           : '0%'
@@ -924,74 +871,73 @@ const Index = () => {
       </main>
 
       <Dialog open={!!caseOpenModal} onOpenChange={() => setCaseOpenModal(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg bg-slate-900 border-2 border-blue-500/50">
           <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-3">
-              <span className="text-4xl">{caseOpenModal?.image}</span>
+            <DialogTitle className="text-3xl flex items-center gap-4 font-black">
+              <span className="text-5xl">{caseOpenModal?.image}</span>
               <span className={rarityColors[caseOpenModal?.rarity || 'common']}>
                 {caseOpenModal?.name}
               </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
-            <div className="text-center py-4">
-              <p className="text-foreground/60 mb-2">Настройки открытия</p>
+          <div className="space-y-8">
+            <div className="text-center py-6">
               {caseOpenModal?.id === 0 ? (
-                <p className="text-2xl font-bold text-accent">БЕСПЛАТНО</p>
+                <p className="text-3xl font-black text-green-400">БЕСПЛАТНО</p>
               ) : (
-                <p className="text-2xl font-bold text-primary">${caseOpenModal?.price}</p>
+                <p className="text-4xl font-black text-yellow-400">${caseOpenModal?.price}</p>
               )}
             </div>
 
             <div>
-              <label className="text-sm text-foreground/80 mb-3 block font-bold">
+              <label className="text-lg font-bold mb-4 block text-blue-400">
                 Количество кейсов
               </label>
-              <div className="flex gap-2 justify-center">
+              <div className="flex gap-3 justify-center">
                 {[1, 2, 3, 4, 5].map((count) => (
                   <Button
                     key={count}
                     variant={modalOpenCount === count ? 'default' : 'outline'}
                     onClick={() => setModalOpenCount(count)}
-                    className="w-14 h-14 text-lg font-bold"
+                    className="w-16 h-16 text-2xl font-black"
                   >
                     {count}
                   </Button>
                 ))}
               </div>
               {caseOpenModal && caseOpenModal.id !== 0 && (
-                <p className="text-center mt-3 text-sm">
-                  Итого: <span className="font-bold text-primary">${(caseOpenModal.price * modalOpenCount)}</span>
+                <p className="text-center mt-4 text-lg">
+                  Итого: <span className="font-black text-yellow-400 text-2xl">${(caseOpenModal.price * modalOpenCount)}</span>
                 </p>
               )}
             </div>
 
             <div>
-              <label className="text-sm text-foreground/80 mb-3 block font-bold">
+              <label className="text-lg font-bold mb-4 block text-purple-400">
                 Режим открытия
               </label>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button
                   variant={!modalFastMode ? 'default' : 'outline'}
                   onClick={() => setModalFastMode(false)}
-                  className="flex-1"
+                  className="flex-1 font-bold text-lg py-6"
                 >
-                  <Icon name="Clock" className="mr-2" size={18} />
-                  Обычный (3s)
+                  <Icon name="Clock" className="mr-2" size={20} />
+                  Обычный
                 </Button>
                 <Button
                   variant={modalFastMode ? 'default' : 'outline'}
                   onClick={() => setModalFastMode(true)}
-                  className="flex-1"
+                  className="flex-1 font-bold text-lg py-6"
                 >
-                  <Icon name="Zap" className="mr-2" size={18} />
-                  Быстрый (1s)
+                  <Icon name="Zap" className="mr-2" size={20} />
+                  Быстрый
                 </Button>
               </div>
             </div>
 
             <Button
-              className="w-full bg-primary hover:bg-primary/90 font-bold text-lg py-6"
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 font-black text-xl py-8 shadow-2xl"
               disabled={caseOpenModal && caseOpenModal.id !== 0 && userStats.balance < (caseOpenModal.price * modalOpenCount)}
               onClick={() => {
                 if (caseOpenModal) {
@@ -1002,7 +948,7 @@ const Index = () => {
               {caseOpenModal && caseOpenModal.id !== 0 && userStats.balance < (caseOpenModal.price * modalOpenCount) ? (
                 'Недостаточно средств'
               ) : (
-                'Открыть!'
+                '🎮 ОТКРЫТЬ!'
               )}
             </Button>
           </div>
@@ -1010,37 +956,37 @@ const Index = () => {
       </Dialog>
 
       <Dialog open={!!viewingCase} onOpenChange={() => setViewingCase(null)}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-slate-900 border-2 border-blue-500/50">
           <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-3">
-              <span className="text-4xl">{viewingCase?.image}</span>
+            <DialogTitle className="text-3xl flex items-center gap-4 font-black">
+              <span className="text-5xl">{viewingCase?.image}</span>
               <span className={rarityColors[viewingCase?.rarity || 'common']}>
                 {viewingCase?.name}
               </span>
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="text-center py-4">
-              <p className="text-foreground/60 mb-2">Возможные предметы в этом кейсе:</p>
-              <p className="text-xl font-bold text-primary">
+              <p className="text-slate-400 mb-3 text-lg">Возможные предметы:</p>
+              <p className="text-3xl font-black text-yellow-400">
                 {viewingCase?.id === 0 ? 'БЕСПЛАТНО' : `$${viewingCase?.price}`}
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {viewingCase?.drops.map((item, idx) => (
                 <Card
                   key={idx}
-                  className={`p-3 bg-card border-2 ${rarityBorders[item.rarity]}`}
+                  className={`p-4 ${rarityBg[item.rarity]} border-2 ${rarityBorders[item.rarity]} backdrop-blur-sm shadow-lg ${rarityGlow[item.rarity]}`}
                 >
                   <div className="text-center space-y-2">
-                    <img src={item.image} alt={item.name} className="w-16 h-16 object-contain mx-auto" />
-                    <h4 className={`text-xs font-bold ${rarityColors[item.rarity]}`}>
+                    <img src={item.image} alt={item.name} className="w-20 h-20 object-contain mx-auto" />
+                    <h4 className={`text-xs font-bold ${rarityColors[item.rarity]} line-clamp-2`}>
                       {item.name}
                     </h4>
-                    <Badge variant="outline" className={`text-xs ${rarityColors[item.rarity]}`}>
+                    <Badge variant="outline" className={`text-xs ${rarityColors[item.rarity]} font-bold`}>
                       {item.rarity}
                     </Badge>
-                    <div className="text-sm font-bold text-primary">${item.value}</div>
+                    <div className="text-sm font-bold text-yellow-400">${item.value}</div>
                   </div>
                 </Card>
               ))}
@@ -1048,27 +994,6 @@ const Index = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <footer className="border-t border-border/50 mt-16 py-8 bg-card/50">
-        <div className="container mx-auto px-4 text-center text-foreground/60">
-          <p className="mb-2">© 2025 CS2 CASES. Все права защищены.</p>
-          <p className="text-sm">Играйте ответственно. 18+</p>
-        </div>
-      </footer>
-
-      <style>{`
-        @keyframes roulette {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(calc(-5400px + 50% - 56px)); }
-        }
-        @keyframes roulette-fast {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(calc(-5400px + 50% - 56px)); }
-        }
-        .roulette-animation {
-          will-change: transform;
-        }
-      `}</style>
     </div>
   );
 };
