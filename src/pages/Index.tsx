@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -142,7 +142,7 @@ const Index = () => {
   const [viewingCase, setViewingCase] = useState<CaseItem | null>(null);
   const [openCount, setOpenCount] = useState(1);
   const [isOpening, setIsOpening] = useState(false);
-  const [rouletteItems, setRouletteItems] = useState<InventoryItem[][]>([]);
+  const [wonItems, setWonItems] = useState<InventoryItem[]>([]);
   const [openedItems, setOpenedItems] = useState<InventoryItem[]>([]);
   const [fastMode, setFastMode] = useState(false);
   const [freeTimer, setFreeTimer] = useState(0);
@@ -152,7 +152,13 @@ const Index = () => {
   const [upgradeChance, setUpgradeChance] = useState(50);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [upgradeResult, setUpgradeResult] = useState<{ success: boolean; item?: InventoryItem } | null>(null);
+  const [caseOpenModal, setCaseOpenModal] = useState<CaseItem | null>(null);
+  const [modalOpenCount, setModalOpenCount] = useState(1);
+  const [modalFastMode, setModalFastMode] = useState(false);
+  const [inventorySort, setInventorySort] = useState<'recent' | 'value'>('recent');
   
+  const rouletteRefs = useRef<(HTMLDivElement | null)[]>([]);
+
   const loadFromStorage = () => {
     const savedStats = localStorage.getItem('cs2_user_stats');
     const savedInventory = localStorage.getItem('cs2_inventory');
@@ -201,25 +207,7 @@ const Index = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const generateRouletteItems = (caseDrops: Omit<InventoryItem, 'id'>[], winningItem: InventoryItem) => {
-    const items: InventoryItem[] = [];
-    const winPosition = 45;
-    
-    for (let i = 0; i < 60; i++) {
-      if (i === winPosition) {
-        items.push(winningItem);
-      } else {
-        const randomDrop = caseDrops[Math.floor(Math.random() * caseDrops.length)];
-        items.push({
-          id: Date.now() + i,
-          ...randomDrop,
-        });
-      }
-    }
-    return items;
-  };
-
-  const openCase = (caseItem: CaseItem) => {
+  const openCase = (caseItem: CaseItem, count: number, fast: boolean) => {
     if (caseItem.id === 0) {
       if (freeTimer > 0) return;
       setUserStats({
@@ -227,19 +215,21 @@ const Index = () => {
         lastFreeCase: Date.now(),
       });
     } else {
-      const totalCost = caseItem.price * openCount;
+      const totalCost = caseItem.price * count;
       if (userStats.balance < totalCost) return;
     }
 
+    setCaseOpenModal(null);
     setSelectedCase(caseItem);
     setIsOpening(true);
     setOpenedItems([]);
+    setFastMode(fast);
+    setOpenCount(count);
 
     const newItems: InventoryItem[] = [];
-    const roulettes: InventoryItem[][] = [];
     let totalValue = 0;
 
-    for (let i = 0; i < openCount; i++) {
+    for (let i = 0; i < count; i++) {
       const caseDrops = caseItem.drops;
       const rarityRoll = Math.random();
       let selectedItem: Omit<InventoryItem, 'id'>;
@@ -264,28 +254,25 @@ const Index = () => {
       };
       newItems.push(newItem);
       totalValue += newItem.value;
-
-      const roulette = generateRouletteItems(caseItem.drops, newItem);
-      roulettes.push(roulette);
     }
 
-    setRouletteItems(roulettes);
+    setWonItems(newItems);
 
-    const animationDuration = fastMode ? 1000 : 3000;
+    const animationDuration = fast ? 1000 : 3000;
 
     setTimeout(() => {
       setOpenedItems(newItems);
       setInventory([...newItems, ...inventory]);
       
-      const totalCost = caseItem.id === 0 ? 0 : caseItem.price * openCount;
-      const expGain = openCount * 5;
+      const totalCost = caseItem.id === 0 ? 0 : caseItem.price * count;
+      const expGain = count * 5;
       const newExp = userStats.exp + expGain;
       const levelUp = Math.floor(newExp / 100);
       
       setUserStats({
         ...userStats,
         balance: userStats.balance - totalCost,
-        totalOpened: userStats.totalOpened + openCount,
+        totalOpened: userStats.totalOpened + count,
         totalSpent: userStats.totalSpent + totalCost,
         totalWon: userStats.totalWon + totalValue,
         exp: newExp % 100,
@@ -339,6 +326,7 @@ const Index = () => {
   const closeOpenedModal = () => {
     setOpenedItems([]);
     setSelectedCase(null);
+    setWonItems([]);
   };
 
   const filteredCases = categoryFilter === 'all' ? cases : cases.filter(c => c.category === categoryFilter);
@@ -351,6 +339,13 @@ const Index = () => {
     if (!upgradeItem) return 0;
     return Math.round(upgradeItem.value * (1 - upgradeChance / 100));
   };
+
+  const sortedInventory = [...inventory].sort((a, b) => {
+    if (inventorySort === 'value') {
+      return b.value - a.value;
+    }
+    return b.id - a.id;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-card">
@@ -475,32 +470,42 @@ const Index = () => {
               <p className="text-foreground/60">41 уникальный кейс в 8 категориях</p>
             </div>
 
-            {isOpening && (
+            {isOpening && selectedCase && (
               <div className="space-y-4">
-                {rouletteItems.map((roulette, idx) => (
-                  <Card key={idx} className="p-6 bg-card border-2 border-primary/50">
+                {wonItems.map((wonItem, idx) => (
+                  <Card key={idx} className="p-6 bg-card border-2 border-primary/50 relative overflow-hidden">
                     <div className="space-y-4">
                       <div className="text-center">
                         <h3 className="text-xl font-bold text-primary">Кейс #{idx + 1}</h3>
                       </div>
                       <div className="relative h-32 overflow-hidden rounded-lg border-2 border-primary/30 bg-background">
                         <div 
-                          className="absolute flex gap-2 p-2"
+                          ref={el => rouletteRefs.current[idx] = el}
+                          className="absolute flex gap-2 p-2 roulette-animation"
                           style={{
                             animation: `${fastMode ? 'roulette-fast' : 'roulette'} ${fastMode ? '1s' : '3s'} cubic-bezier(0.17, 0.67, 0.12, 0.99) forwards`,
                           }}
                         >
-                          {roulette.map((item, itemIdx) => (
-                            <div
-                              key={itemIdx}
-                              className={`flex-shrink-0 w-28 h-28 flex flex-col items-center justify-center bg-card border-2 ${rarityBorders[item.rarity]} rounded-lg p-2`}
-                            >
-                              <img src={item.image} alt={item.name} className="w-16 h-16 object-contain mb-1" />
-                              <div className={`text-[10px] font-bold text-center ${rarityColors[item.rarity]}`}>
-                                {item.name}
+                          {Array.from({ length: 50 }).map((_, i) => {
+                            let item;
+                            if (i === 45) {
+                              item = wonItem;
+                            } else {
+                              const randomDrop = selectedCase.drops[Math.floor(Math.random() * selectedCase.drops.length)];
+                              item = { ...randomDrop, id: Date.now() + i };
+                            }
+                            return (
+                              <div
+                                key={i}
+                                className={`flex-shrink-0 w-28 h-28 flex flex-col items-center justify-center bg-card border-2 ${rarityBorders[item.rarity]} rounded-lg p-2`}
+                              >
+                                <img src={item.image} alt={item.name} className="w-16 h-16 object-contain mb-1" />
+                                <div className={`text-[10px] font-bold text-center ${rarityColors[item.rarity]}`}>
+                                  {item.name}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                         <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-accent transform -translate-x-1/2 z-10 shadow-lg shadow-accent/50"></div>
                       </div>
@@ -537,38 +542,6 @@ const Index = () => {
               </Card>
             )}
 
-            <Card className="p-6 bg-card border border-primary/30 mb-8">
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <span className="text-foreground/80">Открыть сразу:</span>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((count) => (
-                      <Button
-                        key={count}
-                        variant={openCount === count ? 'default' : 'outline'}
-                        onClick={() => setOpenCount(count)}
-                        className="w-12 h-12"
-                        disabled={isOpening}
-                      >
-                        {count}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-foreground/80">Быстрый режим:</span>
-                  <Button
-                    variant={fastMode ? 'default' : 'outline'}
-                    onClick={() => setFastMode(!fastMode)}
-                    disabled={isOpening}
-                  >
-                    <Icon name={fastMode ? 'Zap' : 'ZapOff'} className="mr-2" size={18} />
-                    {fastMode ? 'Вкл' : 'Выкл'}
-                  </Button>
-                </div>
-              </div>
-            </Card>
-
             <div className="flex gap-2 mb-4 flex-wrap">
               <Button
                 variant={categoryFilter === 'all' ? 'default' : 'outline'}
@@ -577,11 +550,11 @@ const Index = () => {
               >
                 Все
               </Button>
-              {['free', 'starter', 'bronze', 'silver', 'gold', 'premium', 'elite', 'legendary'].map((cat) => (
+              {(['free', 'starter', 'bronze', 'silver', 'gold', 'premium', 'elite', 'legendary'] as Category[]).map((cat) => (
                 <Button
                   key={cat}
                   variant={categoryFilter === cat ? 'default' : 'outline'}
-                  onClick={() => setCategoryFilter(cat as Category)}
+                  onClick={() => setCategoryFilter(cat)}
                   size="sm"
                 >
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -610,15 +583,15 @@ const Index = () => {
                     <div className="flex gap-1">
                       <Button
                         className="flex-1 bg-primary hover:bg-primary/90 font-bold text-xs py-2"
-                        disabled={isOpening || (caseItem.id === 0 ? freeTimer > 0 : userStats.balance < caseItem.price * openCount)}
-                        onClick={() => openCase(caseItem)}
+                        disabled={isOpening || (caseItem.id === 0 ? freeTimer > 0 : userStats.balance < caseItem.price)}
+                        onClick={() => setCaseOpenModal(caseItem)}
                       >
                         {caseItem.id === 0 ? (
                           freeTimer > 0 ? <Icon name="Clock" size={14} /> : 'Открыть'
-                        ) : userStats.balance < caseItem.price * openCount ? (
+                        ) : userStats.balance < caseItem.price ? (
                           'Мало $'
                         ) : (
-                          `$${caseItem.price * openCount}`
+                          'Открыть'
                         )}
                       </Button>
                       <Button
@@ -851,6 +824,22 @@ const Index = () => {
                         Общая стоимость: ${inventory.reduce((sum, item) => sum + item.value, 0)}
                       </p>
                     </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={inventorySort === 'recent' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setInventorySort('recent')}
+                      >
+                        Последние
+                      </Button>
+                      <Button
+                        variant={inventorySort === 'value' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setInventorySort('value')}
+                      >
+                        По цене
+                      </Button>
+                    </div>
                   </div>
 
                   {inventory.length === 0 ? (
@@ -860,7 +849,7 @@ const Index = () => {
                     </Card>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                      {inventory.map((item) => (
+                      {sortedInventory.map((item) => (
                         <Card
                           key={item.id}
                           className={`p-4 bg-background border-2 ${rarityBorders[item.rarity]} hover:scale-105 transition-transform`}
@@ -934,6 +923,92 @@ const Index = () => {
         )}
       </main>
 
+      <Dialog open={!!caseOpenModal} onOpenChange={() => setCaseOpenModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-3">
+              <span className="text-4xl">{caseOpenModal?.image}</span>
+              <span className={rarityColors[caseOpenModal?.rarity || 'common']}>
+                {caseOpenModal?.name}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="text-center py-4">
+              <p className="text-foreground/60 mb-2">Настройки открытия</p>
+              {caseOpenModal?.id === 0 ? (
+                <p className="text-2xl font-bold text-accent">БЕСПЛАТНО</p>
+              ) : (
+                <p className="text-2xl font-bold text-primary">${caseOpenModal?.price}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm text-foreground/80 mb-3 block font-bold">
+                Количество кейсов
+              </label>
+              <div className="flex gap-2 justify-center">
+                {[1, 2, 3, 4, 5].map((count) => (
+                  <Button
+                    key={count}
+                    variant={modalOpenCount === count ? 'default' : 'outline'}
+                    onClick={() => setModalOpenCount(count)}
+                    className="w-14 h-14 text-lg font-bold"
+                  >
+                    {count}
+                  </Button>
+                ))}
+              </div>
+              {caseOpenModal && caseOpenModal.id !== 0 && (
+                <p className="text-center mt-3 text-sm">
+                  Итого: <span className="font-bold text-primary">${(caseOpenModal.price * modalOpenCount)}</span>
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm text-foreground/80 mb-3 block font-bold">
+                Режим открытия
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  variant={!modalFastMode ? 'default' : 'outline'}
+                  onClick={() => setModalFastMode(false)}
+                  className="flex-1"
+                >
+                  <Icon name="Clock" className="mr-2" size={18} />
+                  Обычный (3s)
+                </Button>
+                <Button
+                  variant={modalFastMode ? 'default' : 'outline'}
+                  onClick={() => setModalFastMode(true)}
+                  className="flex-1"
+                >
+                  <Icon name="Zap" className="mr-2" size={18} />
+                  Быстрый (1s)
+                </Button>
+              </div>
+            </div>
+
+            <Button
+              className="w-full bg-primary hover:bg-primary/90 font-bold text-lg py-6"
+              disabled={caseOpenModal && caseOpenModal.id !== 0 && userStats.balance < (caseOpenModal.price * modalOpenCount)}
+              onClick={() => {
+                if (caseOpenModal) {
+                  openCase(caseOpenModal, modalOpenCount, modalFastMode);
+                }
+              }}
+            >
+              {caseOpenModal && caseOpenModal.id !== 0 && userStats.balance < (caseOpenModal.price * modalOpenCount) ? (
+                'Недостаточно средств'
+              ) : (
+                'Открыть!'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!viewingCase} onOpenChange={() => setViewingCase(null)}>
         <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -989,6 +1064,9 @@ const Index = () => {
         @keyframes roulette-fast {
           0% { transform: translateX(0); }
           100% { transform: translateX(calc(-5400px + 50% - 56px)); }
+        }
+        .roulette-animation {
+          will-change: transform;
         }
       `}</style>
     </div>
