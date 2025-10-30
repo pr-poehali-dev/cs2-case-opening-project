@@ -5,15 +5,18 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Slider } from '@/components/ui/slider';
 import Icon from '@/components/ui/icon';
 
 type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
+type Category = 'free' | 'starter' | 'bronze' | 'silver' | 'gold' | 'premium' | 'elite' | 'legendary';
 
 interface CaseItem {
   id: number;
   name: string;
   price: number;
   rarity: Rarity;
+  category: Category;
   image: string;
   drops: Omit<InventoryItem, 'id'>[];
 }
@@ -51,26 +54,36 @@ const rarityBorders: Record<Rarity, string> = {
 };
 
 const possibleItems: Omit<InventoryItem, 'id'>[] = [
-  { name: 'P250 | Sand Dune', rarity: 'common', value: 10, image: '🏜️' },
-  { name: 'Glock-18 | Sand Dune', rarity: 'common', value: 15, image: '🌵' },
-  { name: 'MAC-10 | Fade', rarity: 'common', value: 20, image: '🔫' },
-  { name: 'P250 | See Ya Later', rarity: 'common', value: 50, image: '👋' },
-  { name: 'MP9 | Bulldozer', rarity: 'common', value: 60, image: '🚜' },
-  { name: 'AK-47 | Safari Mesh', rarity: 'rare', value: 100, image: '🌿' },
-  { name: 'AK-47 | Redline', rarity: 'rare', value: 150, image: '🔴' },
-  { name: 'Glock-18 | Fade', rarity: 'rare', value: 200, image: '💫' },
-  { name: 'AWP | Asiimov', rarity: 'rare', value: 250, image: '⚡' },
-  { name: 'M4A1-S | Golden Coil', rarity: 'rare', value: 300, image: '🌀' },
-  { name: 'USP-S | Kill Confirmed', rarity: 'epic', value: 800, image: '✅' },
-  { name: 'Desert Eagle | Blaze', rarity: 'epic', value: 1200, image: '💥' },
-  { name: 'Butterfly Knife', rarity: 'epic', value: 1500, image: '🦋' },
-  { name: 'Flip Knife | Marble Fade', rarity: 'epic', value: 1600, image: '🎨' },
-  { name: 'Bayonet | Tiger Tooth', rarity: 'epic', value: 1800, image: '🐅' },
-  { name: 'Karambit | Fade', rarity: 'epic', value: 2000, image: '🗡️' },
-  { name: 'Karambit | Doppler', rarity: 'legendary', value: 3000, image: '💠' },
-  { name: 'AK-47 | Fire Serpent', rarity: 'legendary', value: 3500, image: '🐍' },
-  { name: 'M4A4 | Howl', rarity: 'legendary', value: 4000, image: '🔥' },
-  { name: 'AWP | Dragon Lore', rarity: 'legendary', value: 5000, image: '🐉' },
+  { name: 'P250 | Sand Dune', rarity: 'common', value: 10, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'Glock-18 | Sand Dune', rarity: 'common', value: 15, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'MAC-10 | Fade', rarity: 'common', value: 20, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'P250 | See Ya Later', rarity: 'common', value: 50, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'MP9 | Bulldozer', rarity: 'common', value: 60, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'FAMAS | Afterimage', rarity: 'common', value: 70, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'Galil AR | Cerberus', rarity: 'common', value: 80, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AK-47 | Safari Mesh', rarity: 'rare', value: 100, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AK-47 | Redline', rarity: 'rare', value: 150, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'M4A4 | Asiimov', rarity: 'rare', value: 180, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'Glock-18 | Fade', rarity: 'rare', value: 200, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AWP | Asiimov', rarity: 'rare', value: 250, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/bee2adaa-0220-4f0d-879e-77f70dd2f251.jpg' },
+  { name: 'M4A1-S | Golden Coil', rarity: 'rare', value: 300, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AK-47 | Vulcan', rarity: 'rare', value: 350, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AWP | Hyper Beast', rarity: 'rare', value: 400, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/bee2adaa-0220-4f0d-879e-77f70dd2f251.jpg' },
+  { name: 'USP-S | Kill Confirmed', rarity: 'epic', value: 800, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AK-47 | The Empress', rarity: 'epic', value: 900, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'M4A4 | Neo-Noir', rarity: 'epic', value: 1000, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AWP | Fade', rarity: 'epic', value: 1100, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/bee2adaa-0220-4f0d-879e-77f70dd2f251.jpg' },
+  { name: 'Desert Eagle | Blaze', rarity: 'epic', value: 1200, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'Gut Knife | Doppler', rarity: 'epic', value: 1300, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/eb726648-2c2a-4ef2-a092-b173c696ac64.jpg' },
+  { name: 'Butterfly Knife', rarity: 'epic', value: 1500, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/eb726648-2c2a-4ef2-a092-b173c696ac64.jpg' },
+  { name: 'Flip Knife | Marble Fade', rarity: 'epic', value: 1600, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/eb726648-2c2a-4ef2-a092-b173c696ac64.jpg' },
+  { name: 'Bayonet | Tiger Tooth', rarity: 'epic', value: 1800, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/eb726648-2c2a-4ef2-a092-b173c696ac64.jpg' },
+  { name: 'Karambit | Fade', rarity: 'epic', value: 2000, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/eb726648-2c2a-4ef2-a092-b173c696ac64.jpg' },
+  { name: 'Karambit | Doppler', rarity: 'legendary', value: 3000, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/eb726648-2c2a-4ef2-a092-b173c696ac64.jpg' },
+  { name: 'AK-47 | Fire Serpent', rarity: 'legendary', value: 3500, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'M4A4 | Howl', rarity: 'legendary', value: 4000, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/64b1f221-5639-44ef-b0ef-3d8c0a2e0020.jpg' },
+  { name: 'AWP | Dragon Lore', rarity: 'legendary', value: 5000, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/bee2adaa-0220-4f0d-879e-77f70dd2f251.jpg' },
+  { name: 'Karambit | Gamma Doppler', rarity: 'legendary', value: 5500, image: 'https://cdn.poehali.dev/projects/9dd3bc49-e53f-4885-a2fd-851a256cbf01/files/eb726648-2c2a-4ef2-a092-b173c696ac64.jpg' },
 ];
 
 const generateCaseDrops = (casePrice: number): Omit<InventoryItem, 'id'>[] => {
@@ -80,32 +93,47 @@ const generateCaseDrops = (casePrice: number): Omit<InventoryItem, 'id'>[] => {
 };
 
 const cases: CaseItem[] = [
-  { id: 0, name: 'Бесплатный', price: 0, rarity: 'common', image: '🎁', drops: possibleItems.filter(i => i.value <= 100) },
-  { id: 1, name: 'Новичок', price: 50, rarity: 'common', image: '📦', drops: generateCaseDrops(50) },
-  { id: 2, name: 'Starter', price: 100, rarity: 'common', image: '📫', drops: generateCaseDrops(100) },
-  { id: 3, name: 'Bronze', price: 200, rarity: 'common', image: '🥉', drops: generateCaseDrops(200) },
-  { id: 4, name: 'Silver', price: 300, rarity: 'common', image: '🥈', drops: generateCaseDrops(300) },
-  { id: 5, name: 'Gold', price: 450, rarity: 'rare', image: '🥇', drops: generateCaseDrops(450) },
-  { id: 6, name: 'Premium', price: 600, rarity: 'rare', image: '💼', drops: generateCaseDrops(600) },
-  { id: 7, name: 'VIP', price: 800, rarity: 'rare', image: '👑', drops: generateCaseDrops(800) },
-  { id: 8, name: 'Elite', price: 1000, rarity: 'rare', image: '🎀', drops: generateCaseDrops(1000) },
-  { id: 9, name: 'Master', price: 1200, rarity: 'epic', image: '⭐', drops: generateCaseDrops(1200) },
-  { id: 10, name: 'Champion', price: 1500, rarity: 'epic', image: '🏆', drops: generateCaseDrops(1500) },
-  { id: 11, name: 'Legend', price: 1800, rarity: 'epic', image: '🔱', drops: generateCaseDrops(1800) },
-  { id: 12, name: 'Mythic', price: 2000, rarity: 'epic', image: '🌟', drops: generateCaseDrops(2000) },
-  { id: 13, name: 'Divine', price: 2300, rarity: 'legendary', image: '✨', drops: generateCaseDrops(2300) },
-  { id: 14, name: 'Immortal', price: 2600, rarity: 'legendary', image: '💎', drops: generateCaseDrops(2600) },
-  { id: 15, name: 'Godlike', price: 3000, rarity: 'legendary', image: '🔮', drops: generateCaseDrops(3000) },
-  { id: 16, name: 'Cosmic', price: 3500, rarity: 'legendary', image: '🌌', drops: generateCaseDrops(3500) },
-  { id: 17, name: 'Galactic', price: 4000, rarity: 'legendary', image: '🚀', drops: generateCaseDrops(4000) },
-  { id: 18, name: 'Supreme', price: 4500, rarity: 'legendary', image: '👁️', drops: generateCaseDrops(4500) },
-  { id: 19, name: 'Ultimate', price: 5000, rarity: 'legendary', image: '🎆', drops: generateCaseDrops(5000) },
-  { id: 20, name: 'Phantom', price: 5500, rarity: 'legendary', image: '👻', drops: generateCaseDrops(5500) },
-  { id: 21, name: 'Shadow', price: 6000, rarity: 'legendary', image: '🌑', drops: generateCaseDrops(6000) },
-  { id: 22, name: 'Dragon', price: 7000, rarity: 'legendary', image: '🐲', drops: generateCaseDrops(7000) },
-  { id: 23, name: 'Phoenix', price: 8000, rarity: 'legendary', image: '🔥', drops: generateCaseDrops(8000) },
-  { id: 24, name: 'Infinity', price: 9000, rarity: 'legendary', image: '♾️', drops: generateCaseDrops(9000) },
-  { id: 25, name: 'Universe', price: 10000, rarity: 'legendary', image: '🌠', drops: generateCaseDrops(10000) },
+  { id: 0, name: 'Бесплатный', price: 0, rarity: 'common', category: 'free', image: '🎁', drops: possibleItems.filter(i => i.value <= 100) },
+  { id: 1, name: 'Новичок', price: 50, rarity: 'common', category: 'starter', image: '📦', drops: generateCaseDrops(50) },
+  { id: 2, name: 'Starter', price: 100, rarity: 'common', category: 'starter', image: '📫', drops: generateCaseDrops(100) },
+  { id: 3, name: 'Starter Pro', price: 150, rarity: 'common', category: 'starter', image: '🎯', drops: generateCaseDrops(150) },
+  { id: 4, name: 'Bronze', price: 200, rarity: 'common', category: 'bronze', image: '🥉', drops: generateCaseDrops(200) },
+  { id: 5, name: 'Bronze+', price: 250, rarity: 'common', category: 'bronze', image: '⚜️', drops: generateCaseDrops(250) },
+  { id: 6, name: 'Silver', price: 300, rarity: 'common', category: 'silver', image: '🥈', drops: generateCaseDrops(300) },
+  { id: 7, name: 'Silver Elite', price: 350, rarity: 'common', category: 'silver', image: '🎖️', drops: generateCaseDrops(350) },
+  { id: 8, name: 'Silver Master', price: 400, rarity: 'common', category: 'silver', image: '🏅', drops: generateCaseDrops(400) },
+  { id: 9, name: 'Gold', price: 450, rarity: 'rare', category: 'gold', image: '🥇', drops: generateCaseDrops(450) },
+  { id: 10, name: 'Gold Nova', price: 500, rarity: 'rare', category: 'gold', image: '🌟', drops: generateCaseDrops(500) },
+  { id: 11, name: 'Gold Master', price: 550, rarity: 'rare', category: 'gold', image: '✨', drops: generateCaseDrops(550) },
+  { id: 12, name: 'Premium', price: 600, rarity: 'rare', category: 'premium', image: '💼', drops: generateCaseDrops(600) },
+  { id: 13, name: 'Premium+', price: 700, rarity: 'rare', category: 'premium', image: '💎', drops: generateCaseDrops(700) },
+  { id: 14, name: 'VIP', price: 800, rarity: 'rare', category: 'premium', image: '👑', drops: generateCaseDrops(800) },
+  { id: 15, name: 'VIP Elite', price: 900, rarity: 'rare', category: 'premium', image: '💫', drops: generateCaseDrops(900) },
+  { id: 16, name: 'Elite', price: 1000, rarity: 'rare', category: 'elite', image: '🎀', drops: generateCaseDrops(1000) },
+  { id: 17, name: 'Elite Master', price: 1100, rarity: 'epic', category: 'elite', image: '⭐', drops: generateCaseDrops(1100) },
+  { id: 18, name: 'Master', price: 1200, rarity: 'epic', category: 'elite', image: '🔱', drops: generateCaseDrops(1200) },
+  { id: 19, name: 'Master Guardian', price: 1300, rarity: 'epic', category: 'elite', image: '🛡️', drops: generateCaseDrops(1300) },
+  { id: 20, name: 'Distinguished', price: 1400, rarity: 'epic', category: 'elite', image: '⚔️', drops: generateCaseDrops(1400) },
+  { id: 21, name: 'Champion', price: 1500, rarity: 'epic', category: 'elite', image: '🏆', drops: generateCaseDrops(1500) },
+  { id: 22, name: 'Legend', price: 1600, rarity: 'epic', category: 'elite', image: '🎭', drops: generateCaseDrops(1600) },
+  { id: 23, name: 'Legend Elite', price: 1700, rarity: 'epic', category: 'elite', image: '🎪', drops: generateCaseDrops(1700) },
+  { id: 24, name: 'Mythic', price: 1800, rarity: 'epic', category: 'elite', image: '🔮', drops: generateCaseDrops(1800) },
+  { id: 25, name: 'Mythic+', price: 2000, rarity: 'epic', category: 'elite', image: '🌠', drops: generateCaseDrops(2000) },
+  { id: 26, name: 'Supreme', price: 2200, rarity: 'legendary', category: 'legendary', image: '👁️', drops: generateCaseDrops(2200) },
+  { id: 27, name: 'Divine', price: 2400, rarity: 'legendary', category: 'legendary', image: '🔆', drops: generateCaseDrops(2400) },
+  { id: 28, name: 'Immortal', price: 2600, rarity: 'legendary', category: 'legendary', image: '💠', drops: generateCaseDrops(2600) },
+  { id: 29, name: 'Immortal Elite', price: 2800, rarity: 'legendary', category: 'legendary', image: '💍', drops: generateCaseDrops(2800) },
+  { id: 30, name: 'Godlike', price: 3000, rarity: 'legendary', category: 'legendary', image: '🌌', drops: generateCaseDrops(3000) },
+  { id: 31, name: 'Cosmic', price: 3500, rarity: 'legendary', category: 'legendary', image: '🪐', drops: generateCaseDrops(3500) },
+  { id: 32, name: 'Galactic', price: 4000, rarity: 'legendary', category: 'legendary', image: '🚀', drops: generateCaseDrops(4000) },
+  { id: 33, name: 'Galactic Elite', price: 4500, rarity: 'legendary', category: 'legendary', image: '🌟', drops: generateCaseDrops(4500) },
+  { id: 34, name: 'Universal', price: 5000, rarity: 'legendary', category: 'legendary', image: '🎆', drops: generateCaseDrops(5000) },
+  { id: 35, name: 'Phantom', price: 5500, rarity: 'legendary', category: 'legendary', image: '👻', drops: generateCaseDrops(5500) },
+  { id: 36, name: 'Shadow', price: 6000, rarity: 'legendary', category: 'legendary', image: '🌑', drops: generateCaseDrops(6000) },
+  { id: 37, name: 'Dragon', price: 7000, rarity: 'legendary', category: 'legendary', image: '🐲', drops: generateCaseDrops(7000) },
+  { id: 38, name: 'Phoenix', price: 8000, rarity: 'legendary', category: 'legendary', image: '🔥', drops: generateCaseDrops(8000) },
+  { id: 39, name: 'Infinity', price: 9000, rarity: 'legendary', category: 'legendary', image: '♾️', drops: generateCaseDrops(9000) },
+  { id: 40, name: 'Universe', price: 10000, rarity: 'legendary', category: 'legendary', image: '🌈', drops: generateCaseDrops(10000) },
 ];
 
 const Index = () => {
@@ -114,10 +142,16 @@ const Index = () => {
   const [viewingCase, setViewingCase] = useState<CaseItem | null>(null);
   const [openCount, setOpenCount] = useState(1);
   const [isOpening, setIsOpening] = useState(false);
-  const [rouletteItems, setRouletteItems] = useState<InventoryItem[]>([]);
+  const [rouletteItems, setRouletteItems] = useState<InventoryItem[][]>([]);
   const [openedItems, setOpenedItems] = useState<InventoryItem[]>([]);
   const [fastMode, setFastMode] = useState(false);
   const [freeTimer, setFreeTimer] = useState(0);
+  const [categoryFilter, setCategoryFilter] = useState<Category | 'all'>('all');
+  const [upgradeItem, setUpgradeItem] = useState<InventoryItem | null>(null);
+  const [upgradeTarget, setUpgradeTarget] = useState<InventoryItem | null>(null);
+  const [upgradeChance, setUpgradeChance] = useState(50);
+  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [upgradeResult, setUpgradeResult] = useState<{ success: boolean; item?: InventoryItem } | null>(null);
   
   const loadFromStorage = () => {
     const savedStats = localStorage.getItem('cs2_user_stats');
@@ -202,6 +236,7 @@ const Index = () => {
     setOpenedItems([]);
 
     const newItems: InventoryItem[] = [];
+    const roulettes: InventoryItem[][] = [];
     let totalValue = 0;
 
     for (let i = 0; i < openCount; i++) {
@@ -229,12 +264,12 @@ const Index = () => {
       };
       newItems.push(newItem);
       totalValue += newItem.value;
+
+      const roulette = generateRouletteItems(caseItem.drops, newItem);
+      roulettes.push(roulette);
     }
 
-    if (openCount === 1) {
-      const roulette = generateRouletteItems(caseItem.drops, newItems[0]);
-      setRouletteItems(roulette);
-    }
+    setRouletteItems(roulettes);
 
     const animationDuration = fastMode ? 1000 : 3000;
 
@@ -269,9 +304,52 @@ const Index = () => {
     });
   };
 
+  const performUpgrade = () => {
+    if (!upgradeItem || !upgradeTarget) return;
+
+    const cost = Math.round(upgradeItem.value * (1 - upgradeChance / 100));
+    if (userStats.balance < cost) return;
+
+    setIsUpgrading(true);
+
+    setTimeout(() => {
+      const success = Math.random() * 100 < upgradeChance;
+
+      if (success) {
+        const newItem: InventoryItem = {
+          ...upgradeTarget,
+          id: Date.now(),
+        };
+        setInventory([newItem, ...inventory.filter(i => i.id !== upgradeItem.id)]);
+        setUpgradeResult({ success: true, item: newItem });
+      } else {
+        setInventory(inventory.filter(i => i.id !== upgradeItem.id));
+        setUpgradeResult({ success: false });
+      }
+
+      setUserStats({
+        ...userStats,
+        balance: userStats.balance - cost,
+      });
+
+      setIsUpgrading(false);
+    }, 2000);
+  };
+
   const closeOpenedModal = () => {
     setOpenedItems([]);
     setSelectedCase(null);
+  };
+
+  const filteredCases = categoryFilter === 'all' ? cases : cases.filter(c => c.category === categoryFilter);
+
+  const getPossibleUpgrades = (item: InventoryItem) => {
+    return possibleItems.filter(i => i.value > item.value && i.value <= item.value * 3);
+  };
+
+  const calculateUpgradeCost = () => {
+    if (!upgradeItem) return 0;
+    return Math.round(upgradeItem.value * (1 - upgradeChance / 100));
   };
 
   return (
@@ -301,6 +379,14 @@ const Index = () => {
                 Кейсы
               </Button>
               <Button
+                variant={activeTab === 'upgrade' ? 'default' : 'ghost'}
+                onClick={() => setActiveTab('upgrade')}
+                className="hover:text-primary transition-colors"
+              >
+                <Icon name="TrendingUp" className="mr-2" size={18} />
+                Апгрейды
+              </Button>
+              <Button
                 variant={activeTab === 'profile' ? 'default' : 'ghost'}
                 onClick={() => setActiveTab('profile')}
                 className="hover:text-primary transition-colors"
@@ -326,7 +412,7 @@ const Index = () => {
                   ОТКРЫВАЙ КЕЙСЫ
                 </h2>
                 <p className="text-xl text-foreground/80 mb-6">
-                  Получай легендарные скины CS2 из 26 премиум кейсов
+                  Получай легендарные скины CS2 из 41 премиум кейса
                 </p>
                 <Button
                   size="lg"
@@ -386,61 +472,56 @@ const Index = () => {
           <div className="space-y-8 animate-fade-in">
             <div className="text-center mb-8">
               <h2 className="text-4xl font-bold mb-2 text-primary neon-glow">Выбери свой кейс</h2>
-              <p className="text-foreground/60">26 уникальных кейсов с разными наградами</p>
+              <p className="text-foreground/60">41 уникальный кейс в 8 категориях</p>
             </div>
 
-            {isOpening && openCount === 1 && (
-              <Card className="p-8 bg-card border-2 border-primary/50 mb-8">
-                <div className="space-y-6">
-                  <div className="text-center">
-                    <h3 className="text-2xl font-bold text-primary mb-4">Открываем кейс...</h3>
-                  </div>
-                  <div className="relative h-48 overflow-hidden rounded-lg border-2 border-primary/30 bg-background">
-                    <div 
-                      className="absolute flex gap-4 p-4"
-                      style={{
-                        animation: `${fastMode ? 'roulette-fast' : 'roulette'} ${fastMode ? '1s' : '3s'} cubic-bezier(0.17, 0.67, 0.12, 0.99) forwards`,
-                      }}
-                    >
-                      {rouletteItems.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex-shrink-0 w-40 h-40 flex flex-col items-center justify-center bg-card border-2 ${rarityBorders[item.rarity]} rounded-lg`}
+            {isOpening && (
+              <div className="space-y-4">
+                {rouletteItems.map((roulette, idx) => (
+                  <Card key={idx} className="p-6 bg-card border-2 border-primary/50">
+                    <div className="space-y-4">
+                      <div className="text-center">
+                        <h3 className="text-xl font-bold text-primary">Кейс #{idx + 1}</h3>
+                      </div>
+                      <div className="relative h-32 overflow-hidden rounded-lg border-2 border-primary/30 bg-background">
+                        <div 
+                          className="absolute flex gap-2 p-2"
+                          style={{
+                            animation: `${fastMode ? 'roulette-fast' : 'roulette'} ${fastMode ? '1s' : '3s'} cubic-bezier(0.17, 0.67, 0.12, 0.99) forwards`,
+                          }}
                         >
-                          <div className="text-5xl mb-2">{item.image}</div>
-                          <div className={`text-xs font-bold text-center px-2 ${rarityColors[item.rarity]}`}>
-                            {item.name}
-                          </div>
+                          {roulette.map((item, itemIdx) => (
+                            <div
+                              key={itemIdx}
+                              className={`flex-shrink-0 w-28 h-28 flex flex-col items-center justify-center bg-card border-2 ${rarityBorders[item.rarity]} rounded-lg p-2`}
+                            >
+                              <img src={item.image} alt={item.name} className="w-16 h-16 object-contain mb-1" />
+                              <div className={`text-[10px] font-bold text-center ${rarityColors[item.rarity]}`}>
+                                {item.name}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                        <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-accent transform -translate-x-1/2 z-10 shadow-lg shadow-accent/50"></div>
+                      </div>
                     </div>
-                    <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-accent transform -translate-x-1/2 z-10 shadow-lg shadow-accent/50"></div>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {isOpening && openCount > 1 && (
-              <Card className="p-12 bg-card border-2 border-primary/50 mb-8">
-                <div className="text-center space-y-6">
-                  <div className="text-7xl animate-bounce">🎰</div>
-                  <h3 className="text-3xl font-bold text-primary">Открываем {openCount} кейсов...</h3>
-                </div>
-              </Card>
+                  </Card>
+                ))}
+              </div>
             )}
 
             {openedItems.length > 0 && !isOpening && (
               <Card className="p-12 bg-card border-2 border-primary/50 mb-8 animate-scale-in">
                 <div className="text-center space-y-6">
                   <h3 className="text-3xl font-bold text-primary">Поздравляем! Вы получили:</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
                     {openedItems.map((item) => (
                       <Card key={item.id} className={`p-6 bg-background border-2 ${rarityBorders[item.rarity]}`}>
                         <Badge className={`mb-3 ${rarityColors[item.rarity]}`}>
                           {item.rarity.toUpperCase()}
                         </Badge>
-                        <div className="text-6xl mb-3">{item.image}</div>
-                        <h4 className={`font-bold mb-2 ${rarityColors[item.rarity]}`}>{item.name}</h4>
+                        <img src={item.image} alt={item.name} className="w-32 h-32 object-contain mx-auto mb-3" />
+                        <h4 className={`font-bold mb-2 text-sm ${rarityColors[item.rarity]}`}>{item.name}</h4>
                         <div className="text-2xl font-bold text-primary">${item.value}</div>
                       </Card>
                     ))}
@@ -488,8 +569,28 @@ const Index = () => {
               </div>
             </Card>
 
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <Button
+                variant={categoryFilter === 'all' ? 'default' : 'outline'}
+                onClick={() => setCategoryFilter('all')}
+                size="sm"
+              >
+                Все
+              </Button>
+              {['free', 'starter', 'bronze', 'silver', 'gold', 'premium', 'elite', 'legendary'].map((cat) => (
+                <Button
+                  key={cat}
+                  variant={categoryFilter === cat ? 'default' : 'outline'}
+                  onClick={() => setCategoryFilter(cat as Category)}
+                  size="sm"
+                >
+                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                </Button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {cases.map((caseItem) => (
+              {filteredCases.map((caseItem) => (
                 <Card
                   key={caseItem.id}
                   className={`p-4 bg-card border-2 ${rarityBorders[caseItem.rarity]} hover:scale-105 transition-all ${caseItem.id === 0 ? 'ring-2 ring-accent' : ''}`}
@@ -515,7 +616,7 @@ const Index = () => {
                         {caseItem.id === 0 ? (
                           freeTimer > 0 ? <Icon name="Clock" size={14} /> : 'Открыть'
                         ) : userStats.balance < caseItem.price * openCount ? (
-                          'Недостаточно'
+                          'Мало $'
                         ) : (
                           `$${caseItem.price * openCount}`
                         )}
@@ -533,6 +634,175 @@ const Index = () => {
                 </Card>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === 'upgrade' && (
+          <div className="space-y-8 animate-fade-in">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold mb-2 text-secondary neon-glow">Апгрейд предметов</h2>
+              <p className="text-foreground/60">Улучшай свои скины с настраиваемым шансом успеха</p>
+            </div>
+
+            {upgradeResult && (
+              <Card className="p-8 bg-card border-2 border-primary/50 mb-8 animate-scale-in">
+                <div className="text-center space-y-4">
+                  {upgradeResult.success ? (
+                    <>
+                      <div className="text-6xl">🎉</div>
+                      <h3 className="text-2xl font-bold text-success">Успешный апгрейд!</h3>
+                      <Card className={`p-6 bg-background border-2 ${rarityBorders[upgradeResult.item!.rarity]} inline-block`}>
+                        <img src={upgradeResult.item!.image} alt={upgradeResult.item!.name} className="w-32 h-32 object-contain mx-auto mb-2" />
+                        <h4 className={`font-bold ${rarityColors[upgradeResult.item!.rarity]}`}>{upgradeResult.item!.name}</h4>
+                        <div className="text-xl font-bold text-primary">${upgradeResult.item!.value}</div>
+                      </Card>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-6xl">💔</div>
+                      <h3 className="text-2xl font-bold text-destructive">Неудача</h3>
+                      <p className="text-foreground/60">Предмет потерян. Попробуйте еще раз!</p>
+                    </>
+                  )}
+                  <Button onClick={() => {
+                    setUpgradeResult(null);
+                    setUpgradeItem(null);
+                    setUpgradeTarget(null);
+                  }}>
+                    Продолжить
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="p-6 bg-card border border-primary/30">
+                <h3 className="text-xl font-bold mb-4 text-primary">1. Выбери предмет</h3>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {inventory.length === 0 ? (
+                    <p className="text-foreground/60 text-center py-8">Инвентарь пуст</p>
+                  ) : (
+                    inventory.map((item) => (
+                      <Card
+                        key={item.id}
+                        className={`p-3 bg-background border-2 ${upgradeItem?.id === item.id ? 'border-primary' : rarityBorders[item.rarity]} hover:scale-102 transition-transform cursor-pointer`}
+                        onClick={() => {
+                          setUpgradeItem(item);
+                          setUpgradeTarget(null);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img src={item.image} alt={item.name} className="w-12 h-12 object-contain" />
+                          <div className="flex-1">
+                            <h4 className={`text-sm font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
+                            <p className="text-xs text-foreground/60">${item.value}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-card border border-secondary/30">
+                <h3 className="text-xl font-bold mb-4 text-secondary">2. Целевой предмет</h3>
+                {!upgradeItem ? (
+                  <p className="text-foreground/60 text-center py-8">Сначала выберите предмет для апгрейда</p>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {getPossibleUpgrades(upgradeItem).map((item, idx) => (
+                      <Card
+                        key={idx}
+                        className={`p-3 bg-background border-2 ${upgradeTarget?.name === item.name ? 'border-secondary' : rarityBorders[item.rarity]} hover:scale-102 transition-transform cursor-pointer`}
+                        onClick={() => setUpgradeTarget({ ...item, id: Date.now() })}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img src={item.image} alt={item.name} className="w-12 h-12 object-contain" />
+                          <div className="flex-1">
+                            <h4 className={`text-sm font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
+                            <p className="text-xs text-foreground/60">${item.value}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </Card>
+
+              <Card className="p-6 bg-card border border-accent/30">
+                <h3 className="text-xl font-bold mb-4 text-accent">3. Настройки</h3>
+                {!upgradeItem || !upgradeTarget ? (
+                  <p className="text-foreground/60 text-center py-8">Выберите предметы для апгрейда</p>
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <label className="text-sm text-foreground/80 mb-2 block">
+                        Шанс успеха: {upgradeChance}%
+                      </label>
+                      <Slider
+                        value={[upgradeChance]}
+                        onValueChange={(v) => setUpgradeChance(v[0])}
+                        min={5}
+                        max={95}
+                        step={5}
+                        className="mb-2"
+                      />
+                      <div className="flex justify-between text-xs text-foreground/60">
+                        <span>5%</span>
+                        <span>95%</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 p-4 bg-background rounded-lg">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-foreground/60">Стоимость:</span>
+                        <span className="font-bold text-primary">${calculateUpgradeCost()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-foreground/60">При успехе:</span>
+                        <span className="font-bold text-success">+${upgradeTarget.value - upgradeItem.value}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-foreground/60">При провале:</span>
+                        <span className="font-bold text-destructive">-${upgradeItem.value}</span>
+                      </div>
+                    </div>
+
+                    <Button
+                      className="w-full bg-secondary hover:bg-secondary/90 font-bold"
+                      onClick={performUpgrade}
+                      disabled={isUpgrading || userStats.balance < calculateUpgradeCost()}
+                    >
+                      {isUpgrading ? (
+                        <>
+                          <Icon name="Loader2" className="mr-2 animate-spin" size={18} />
+                          Апгрейд...
+                        </>
+                      ) : userStats.balance < calculateUpgradeCost() ? (
+                        'Недостаточно средств'
+                      ) : (
+                        `Улучшить за $${calculateUpgradeCost()}`
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </Card>
+            </div>
+
+            <Card className="p-6 bg-gradient-to-r from-secondary/10 to-accent/10 border border-secondary/30">
+              <div className="flex items-start gap-4">
+                <Icon name="Info" className="text-secondary mt-1" size={24} />
+                <div>
+                  <h4 className="font-bold text-secondary mb-2">Как работает апгрейд?</h4>
+                  <ul className="text-sm text-foreground/70 space-y-1 list-disc list-inside">
+                    <li>Выберите предмет из инвентаря и целевой предмет для апгрейда</li>
+                    <li>Настройте шанс успеха (чем выше шанс, тем выше стоимость)</li>
+                    <li>При успехе получите целевой предмет, при неудаче потеряете исходный</li>
+                    <li>Целевой предмет может стоить до 3x от исходного</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
           </div>
         )}
 
@@ -589,26 +859,26 @@ const Index = () => {
                       <p className="text-foreground/60">Ваш инвентарь пуст. Откройте кейсы!</p>
                     </Card>
                   ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {inventory.map((item) => (
                         <Card
                           key={item.id}
                           className={`p-4 bg-background border-2 ${rarityBorders[item.rarity]} hover:scale-105 transition-transform`}
                         >
                           <div className="text-center space-y-2">
-                            <div className="text-4xl mb-2">{item.image}</div>
-                            <h4 className={`text-sm font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
+                            <img src={item.image} alt={item.name} className="w-20 h-20 object-contain mx-auto mb-2" />
+                            <h4 className={`text-xs font-bold ${rarityColors[item.rarity]}`}>{item.name}</h4>
                             <Badge variant="outline" className={`text-xs ${rarityColors[item.rarity]}`}>
                               {item.rarity.toUpperCase()}
                             </Badge>
-                            <div className="text-lg font-bold text-primary">${item.value}</div>
+                            <div className="text-sm font-bold text-primary">${item.value}</div>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full"
+                              className="w-full text-xs"
                               onClick={() => sellItem(item)}
                             >
-                              <Icon name="DollarSign" className="mr-1" size={14} />
+                              <Icon name="DollarSign" className="mr-1" size={12} />
                               Продать
                             </Button>
                           </div>
@@ -665,7 +935,7 @@ const Index = () => {
       </main>
 
       <Dialog open={!!viewingCase} onOpenChange={() => setViewingCase(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl flex items-center gap-3">
               <span className="text-4xl">{viewingCase?.image}</span>
@@ -681,14 +951,14 @@ const Index = () => {
                 {viewingCase?.id === 0 ? 'БЕСПЛАТНО' : `$${viewingCase?.price}`}
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {viewingCase?.drops.map((item, idx) => (
                 <Card
                   key={idx}
-                  className={`p-4 bg-card border-2 ${rarityBorders[item.rarity]}`}
+                  className={`p-3 bg-card border-2 ${rarityBorders[item.rarity]}`}
                 >
                   <div className="text-center space-y-2">
-                    <div className="text-3xl">{item.image}</div>
+                    <img src={item.image} alt={item.name} className="w-16 h-16 object-contain mx-auto" />
                     <h4 className={`text-xs font-bold ${rarityColors[item.rarity]}`}>
                       {item.name}
                     </h4>
@@ -714,11 +984,11 @@ const Index = () => {
       <style>{`
         @keyframes roulette {
           0% { transform: translateX(0); }
-          100% { transform: translateX(calc(-7920px + 50vw - 88px)); }
+          100% { transform: translateX(calc(-5400px + 50% - 56px)); }
         }
         @keyframes roulette-fast {
           0% { transform: translateX(0); }
-          100% { transform: translateX(calc(-7920px + 50vw - 88px)); }
+          100% { transform: translateX(calc(-5400px + 50% - 56px)); }
         }
       `}</style>
     </div>
